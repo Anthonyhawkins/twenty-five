@@ -15,11 +15,6 @@
       ]
     },
     {
-      "id": "oha9cpizu4gz0n5w",
-      "name": "Personal",
-      "tasks": []
-    },
-    {
       "id": "ov1s316rerhldx61",
       "name": "Build",
       "tasks": [
@@ -39,18 +34,14 @@
       "tasks": []
     },
     {
-      "id": "yrtpdik39fq1ng9c",
-      "name": "Backlog",
-      "tasks": [
-        {
-          "id": "cdx5x1op329l53oc",
-          "name": "A bigger task",
-          "description": "",
-          "notes": "",
-          "state": "delegated",
-          "size": 5
-        }
-      ]
+      "id": "g7flai4kwbsmkj4p",
+      "name": "Design",
+      "tasks": []
+    },
+    {
+      "id": "qht36mam3mi2gmac",
+      "name": "Misc",
+      "tasks": []
     }
   ],
   "backburner": [],
@@ -143,5 +134,25 @@
     }
   ],
   "categoryBackburner": [],
-  "categoryArchives": []
+  "categoryArchives": [
+    {
+      "id": "oha9cpizu4gz0n5w",
+      "name": "Personal",
+      "tasks": []
+    },
+    {
+      "id": "yrtpdik39fq1ng9c",
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "cdx5x1op329l53oc",
+          "name": "A bigger task",
+          "description": "",
+          "notes": "",
+          "state": "delegated",
+          "size": 5
+        }
+      ]
+    }
+  ]
 }

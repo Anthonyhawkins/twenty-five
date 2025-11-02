@@ -54,10 +54,6 @@
               </template>
               
             </div>
-            <div class="flex items-center gap-1">
-              <button @click.stop="backburnerCategory(ci)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-slate-300 bg-white hover:bg-slate-100">Back</button>
-              <button @click.stop="archiveCategory(ci)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-slate-300 bg-white hover:bg-slate-100">Archive</button>
-            </div>
           </div>
 
           <!-- 5-row grid inside each column -->
@@ -105,15 +101,47 @@
 
           </div>
 
-          <!-- Column footer: +Task bottom-left, Capacity bottom-right -->
-          <div class="mt-2 flex items-center justify-between">
-            <button @click="openQuickAdd(ci)" class="text-xs px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 ring-1 ring-slate-200">+ Task</button>
+          <div class="mt-2 flex items-center justify-between gap-2">
             <div class="text-xs text-slate-500">
               Capacity: <span x-text="col.tasks.reduce((s,t)=>s+t.size,0)"></span>/5
             </div>
           </div>
+          <!-- Column footer: +Task bottom-left, Capacity bottom-right -->
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <div class="inline-flex rounded-md overflow-hidden ring-1 ring-slate-300 bg-white text-[10px]">
+              <button @click="openQuickAdd(ci)" class="px-2 py-0.5 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400">+ Task</button>
+            </div>
+            <div class="inline-flex rounded-md overflow-hidden ring-1 ring-slate-300 bg-white text-[10px]">
+              <button @click.stop="backburnerCategory(ci)" class="px-2 py-0.5 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400">Back</button>
+              <button @click.stop="archiveCategory(ci)" class="px-2 py-0.5 border-l border-slate-200 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-400">Archive</button>
+            </div>
+          </div>
           <!-- Quick Add moved to global modal -->
           </div>
+      </template>
+      <template x-if="categories.length < 5">
+        <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 flex flex-col items-start justify-between min-h-[28rem]">
+          <div class="w-full">
+            <h2 class="font-medium text-slate-600">New Category</h2>
+            <p class="mt-1 text-xs text-slate-500">Add a fresh lane to keep work balanced.</p>
+          </div>
+          <div class="w-full mt-4">
+            <template x-if="!addingCategory">
+              <button @click="startAddCategory()" class="w-full px-3 py-2 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 transition">Add Category</button>
+            </template>
+            <template x-if="addingCategory">
+              <div class="space-y-3">
+                <label class="text-xs text-slate-600 w-full block">Category name
+                  <input type="text" x-model="newCategoryName" @keydown.enter.prevent="commitAddCategory()" x-ref="newCategoryInput" class="mt-1 w-full px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="e.g. Design"/>
+                </label>
+                <div class="flex gap-2">
+                  <button @click="commitAddCategory()" class="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm hover:bg-slate-800">Create</button>
+                  <button @click="cancelAddCategory()" class="flex-1 px-3 py-2 rounded-md bg-white ring-1 ring-slate-300 text-sm">Cancel</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
       </template>
     </section>
 
@@ -335,6 +363,8 @@
         quickEdit: { open: false, location: null, columnIndex: null, id: null, form: { name: '', description: '', notes: '', links: '', state: 'todo', size: 1 } },
         editingCategoryIndex: null,
         editingCategoryName: '',
+        addingCategory: false,
+        newCategoryName: '',
         async init() {
           await this.loadBoard();
         },
@@ -794,6 +824,52 @@
           } catch (err) {
             this.handleActionError(err);
           }
+        },
+        startAddCategory() {
+          this.addingCategory = true;
+          this.newCategoryName = '';
+          this.$nextTick(() => {
+            const input = this.$refs.newCategoryInput;
+            if (input) {
+              input.focus();
+              input.select();
+            }
+          });
+        },
+        async commitAddCategory() {
+          const name = (this.newCategoryName || '').trim();
+          if (!name) {
+            alert('Name required');
+            return;
+          }
+          try {
+            const res = await this.api('/api/categories', {
+              method: 'POST',
+              body: JSON.stringify({ name }),
+            });
+            this.updateAfterBoardResponse(res);
+            this.newCategoryName = '';
+            this.addingCategory = false;
+          } catch (err) {
+            if (err.status === 409) {
+              const message = (err?.message || '').toLowerCase();
+              if (message.includes('duplicate')) {
+                alert('Another category already uses that name.');
+                return;
+              }
+              if (message.includes('maximum number of categories')) {
+                alert('The board already has five categories.');
+                this.addingCategory = false;
+                this.newCategoryName = '';
+                return;
+              }
+            }
+            this.handleActionError(err);
+          }
+        },
+        cancelAddCategory() {
+          this.addingCategory = false;
+          this.newCategoryName = '';
         },
         async backburnerCategory(ci) {
           const category = this.categories[ci];
