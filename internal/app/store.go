@@ -56,6 +56,7 @@ func (s *Store) loadOrSeed() error {
 		return fmt.Errorf("decode data file: %w", err)
 	}
 
+	normalizeBoardState(&loaded)
 	s.state = loaded
 	return nil
 }
@@ -64,6 +65,24 @@ func (s *Store) GetState() BoardState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state.Clone()
+}
+
+func normalizeBoardState(state *BoardState) {
+	if state.Categories == nil {
+		state.Categories = []Category{}
+	}
+	if state.Backburner == nil {
+		state.Backburner = []Task{}
+	}
+	if state.Archives == nil {
+		state.Archives = []Task{}
+	}
+	if state.CategoryBackburner == nil {
+		state.CategoryBackburner = []Category{}
+	}
+	if state.CategoryArchives == nil {
+		state.CategoryArchives = []Category{}
+	}
 }
 
 func (s *Store) saveLocked() error {
@@ -221,6 +240,16 @@ func (s *Store) RenameCategory(id, name string) (Category, BoardState, error) {
 				return ErrDuplicateCategory
 			}
 		}
+		for _, existing := range state.CategoryBackburner {
+			if existing.Name == name && existing.ID != id {
+				return ErrDuplicateCategory
+			}
+		}
+		for _, existing := range state.CategoryArchives {
+			if existing.Name == name && existing.ID != id {
+				return ErrDuplicateCategory
+			}
+		}
 		for i := range state.Categories {
 			if state.Categories[i].ID == id {
 				state.Categories[i].Name = name
@@ -248,6 +277,19 @@ func (s *Store) CreateCategory(name string) (Category, BoardState, error) {
 				return ErrDuplicateCategory
 			}
 		}
+		for _, existing := range state.CategoryBackburner {
+			if existing.Name == name {
+				return ErrDuplicateCategory
+			}
+		}
+		for _, existing := range state.CategoryArchives {
+			if existing.Name == name {
+				return ErrDuplicateCategory
+			}
+		}
+		if len(state.Categories) >= CategoryLimit {
+			return ErrCategoryLimit
+		}
 		cat = Category{
 			ID:    NewID(),
 			Name:  name,
@@ -260,6 +302,30 @@ func (s *Store) CreateCategory(name string) (Category, BoardState, error) {
 		return Category{}, BoardState{}, err
 	}
 	return cat, updatedState, nil
+}
+
+func (s *Store) MoveCategory(id string, dest MoveCategoryRequest) (Category, BoardState, error) {
+	var moved Category
+	updatedState, err := s.withWrite(func(state *BoardState) error {
+		dest.Normalize()
+		if err := dest.Validate(); err != nil {
+			return err
+		}
+		cat, loc, err := removeCategory(state, id)
+		if err != nil {
+			return err
+		}
+		if err := state.placeCategory(cat, dest); err != nil {
+			restoreCategory(state, cat, loc)
+			return err
+		}
+		moved = cat.Clone()
+		return nil
+	})
+	if err != nil {
+		return Category{}, BoardState{}, err
+	}
+	return moved, updatedState, nil
 }
 
 func (s *Store) ReorderCategoryTasks(id string, order []string) (Category, BoardState, error) {
@@ -353,6 +419,16 @@ func normalizeFocus(state *BoardState, focusedID string) {
 	for i := range state.Archives {
 		state.Archives[i].Focused = false
 	}
+	for i := range state.CategoryBackburner {
+		for j := range state.CategoryBackburner[i].Tasks {
+			state.CategoryBackburner[i].Tasks[j].Focused = false
+		}
+	}
+	for i := range state.CategoryArchives {
+		for j := range state.CategoryArchives[i].Tasks {
+			state.CategoryArchives[i].Tasks[j].Focused = false
+		}
+	}
 }
 
 func clearFocus(state *BoardState) {
@@ -366,6 +442,22 @@ func clearFocus(state *BoardState) {
 	}
 	for i := range state.Archives {
 		state.Archives[i].Focused = false
+	}
+	for i := range state.CategoryBackburner {
+		for j := range state.CategoryBackburner[i].Tasks {
+			state.CategoryBackburner[i].Tasks[j].Focused = false
+		}
+	}
+	for i := range state.CategoryArchives {
+		for j := range state.CategoryArchives[i].Tasks {
+			state.CategoryArchives[i].Tasks[j].Focused = false
+		}
+	}
+}
+
+func clearCategoryFocus(cat *Category) {
+	for i := range cat.Tasks {
+		cat.Tasks[i].Focused = false
 	}
 }
 
@@ -387,6 +479,57 @@ func restoreTask(state *BoardState, task Task, loc taskLocation) {
 		state.Archives = append(state.Archives, Task{})
 		copy(state.Archives[loc.TaskIndex+1:], state.Archives[loc.TaskIndex:])
 		state.Archives[loc.TaskIndex] = task
+	}
+}
+
+type categoryLocation struct {
+	Kind  string
+	Index int
+}
+
+func removeCategory(state *BoardState, id string) (Category, categoryLocation, error) {
+	for i := range state.Categories {
+		if state.Categories[i].ID == id {
+			cat := state.Categories[i].Clone()
+			state.Categories = append(state.Categories[:i], state.Categories[i+1:]...)
+			return cat, categoryLocation{Kind: LocationCategoryBoard, Index: i}, nil
+		}
+	}
+	for i := range state.CategoryBackburner {
+		if state.CategoryBackburner[i].ID == id {
+			cat := state.CategoryBackburner[i].Clone()
+			state.CategoryBackburner = append(state.CategoryBackburner[:i], state.CategoryBackburner[i+1:]...)
+			return cat, categoryLocation{Kind: LocationBackburner, Index: i}, nil
+		}
+	}
+	for i := range state.CategoryArchives {
+		if state.CategoryArchives[i].ID == id {
+			cat := state.CategoryArchives[i].Clone()
+			state.CategoryArchives = append(state.CategoryArchives[:i], state.CategoryArchives[i+1:]...)
+			return cat, categoryLocation{Kind: LocationArchive, Index: i}, nil
+		}
+	}
+	return Category{}, categoryLocation{}, ErrCategoryNotFound
+}
+
+func restoreCategory(state *BoardState, cat Category, loc categoryLocation) {
+	switch loc.Kind {
+	case LocationCategoryBoard:
+		if loc.Index >= len(state.Categories) {
+			state.Categories = append(state.Categories, cat)
+			return
+		}
+		state.Categories = append(state.Categories, Category{})
+		copy(state.Categories[loc.Index+1:], state.Categories[loc.Index:])
+		state.Categories[loc.Index] = cat
+	case LocationBackburner:
+		state.CategoryBackburner = append(state.CategoryBackburner, Category{})
+		copy(state.CategoryBackburner[loc.Index+1:], state.CategoryBackburner[loc.Index:])
+		state.CategoryBackburner[loc.Index] = cat
+	case LocationArchive:
+		state.CategoryArchives = append(state.CategoryArchives, Category{})
+		copy(state.CategoryArchives[loc.Index+1:], state.CategoryArchives[loc.Index:])
+		state.CategoryArchives[loc.Index] = cat
 	}
 }
 
@@ -540,6 +683,34 @@ func (state *BoardState) placeTask(task Task, dest MoveTaskRequest) error {
 	return nil
 }
 
+func (state *BoardState) placeCategory(cat Category, dest MoveCategoryRequest) error {
+	switch dest.Location {
+	case LocationCategoryBoard:
+		if len(state.Categories) >= CategoryLimit {
+			return ErrCategoryLimit
+		}
+		if err := ensureCapacity(cat); err != nil {
+			return err
+		}
+		insertIndex := len(state.Categories)
+		if dest.Position != nil && *dest.Position >= 0 && *dest.Position <= len(state.Categories) {
+			insertIndex = *dest.Position
+		}
+		state.Categories = append(state.Categories, Category{})
+		copy(state.Categories[insertIndex+1:], state.Categories[insertIndex:])
+		state.Categories[insertIndex] = cat
+	case LocationBackburner:
+		clearCategoryFocus(&cat)
+		state.CategoryBackburner = append(state.CategoryBackburner, cat)
+	case LocationArchive:
+		clearCategoryFocus(&cat)
+		state.CategoryArchives = append(state.CategoryArchives, cat)
+	default:
+		return ErrInvalidLocation
+	}
+	return nil
+}
+
 func findCategoryIndex(categories []Category, id string) int {
 	for i := range categories {
 		if categories[i].ID == id {
@@ -593,8 +764,10 @@ func seedBoard() BoardState {
 				newTask("Read 30 mins", "Continue current book.", "todo", 1),
 			}),
 		},
-		Backburner: []Task{},
-		Archives:   []Task{},
+		Backburner:         []Task{},
+		Archives:           []Task{},
+		CategoryBackburner: []Category{},
+		CategoryArchives:   []Category{},
 	}
 }
 

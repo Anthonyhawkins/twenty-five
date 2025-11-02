@@ -1,47 +1,6 @@
 {
   "categories": [
     {
-      "id": "yrtpdik39fq1ng9c",
-      "name": "Backlog",
-      "tasks": [
-        {
-          "id": "cdx5x1op329l53oc",
-          "name": "A bigger task",
-          "description": "",
-          "notes": "",
-          "state": "delegated",
-          "size": 5
-        },
-        {
-          "id": "8lvb4uvnqdrnrln8",
-          "name": "Make it bigger",
-          "description": "make the logo bigger",
-          "notes": "",
-          "state": "todo",
-          "size": 1
-        }
-      ]
-    },
-    {
-      "id": "t61393ahsmaj50vd",
-      "name": "Planning",
-      "tasks": []
-    },
-    {
-      "id": "ov1s316rerhldx61",
-      "name": "Build",
-      "tasks": [
-        {
-          "id": "90owdpv82346ds42",
-          "name": "Docs pass",
-          "description": "README + usage examples.",
-          "notes": "",
-          "state": "todo",
-          "size": 2
-        }
-      ]
-    },
-    {
       "id": "6crexqdet69loou2",
       "name": "Stuff",
       "tasks": [
@@ -59,6 +18,39 @@
       "id": "oha9cpizu4gz0n5w",
       "name": "Personal",
       "tasks": []
+    },
+    {
+      "id": "ov1s316rerhldx61",
+      "name": "Build",
+      "tasks": [
+        {
+          "id": "90owdpv82346ds42",
+          "name": "Docs pass",
+          "description": "README + usage examples.",
+          "notes": "",
+          "state": "todo",
+          "size": 2
+        }
+      ]
+    },
+    {
+      "id": "t61393ahsmaj50vd",
+      "name": "Planning",
+      "tasks": []
+    },
+    {
+      "id": "yrtpdik39fq1ng9c",
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "cdx5x1op329l53oc",
+          "name": "A bigger task",
+          "description": "",
+          "notes": "",
+          "state": "delegated",
+          "size": 5
+        }
+      ]
     }
   ],
   "backburner": [],
@@ -128,6 +120,28 @@
       ],
       "sourceId": "ov1s316rerhldx61",
       "source": "Build"
+    },
+    {
+      "id": "wa6ix6y5i9ncohy1",
+      "name": "anbother one",
+      "description": "",
+      "notes": "",
+      "state": "doing",
+      "size": 4,
+      "sourceId": "6crexqdet69loou2",
+      "source": "Stuff"
+    },
+    {
+      "id": "byb2dar1j051zxe2",
+      "name": "one",
+      "description": "",
+      "notes": "",
+      "state": "todo",
+      "size": 1,
+      "sourceId": "6crexqdet69loou2",
+      "source": "Stuff"
     }
-  ]
+  ],
+  "categoryBackburner": [],
+  "categoryArchives": []
 }

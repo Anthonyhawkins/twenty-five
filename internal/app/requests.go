@@ -112,3 +112,23 @@ type CategoryPatch struct {
 	Name  *string  `json:"name,omitempty"`
 	Order []string `json:"order,omitempty"`
 }
+
+type MoveCategoryRequest struct {
+	Location string `json:"location"`
+	Position *int   `json:"position,omitempty"`
+}
+
+func (r *MoveCategoryRequest) Normalize() {
+	if r.Location == "" {
+		r.Location = LocationCategoryBoard
+	}
+}
+
+func (r MoveCategoryRequest) Validate() error {
+	switch r.Location {
+	case LocationCategoryBoard, LocationBackburner, LocationArchive:
+		return nil
+	default:
+		return ErrInvalidLocation
+	}
+}

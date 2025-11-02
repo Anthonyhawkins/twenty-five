@@ -7,17 +7,21 @@ import (
 
 const (
 	ColumnCapacity = 5
+	CategoryLimit  = 5
 
-	LocationCategory   = "category"
-	LocationBackburner = "backburner"
-	LocationArchive    = "archive"
+	LocationCategory      = "category"
+	LocationBackburner    = "backburner"
+	LocationArchive       = "archive"
+	LocationCategoryBoard = "board"
 )
 
 // BoardState represents the persisted board.
 type BoardState struct {
-	Categories []Category `json:"categories"`
-	Backburner []Task     `json:"backburner"`
-	Archives   []Task     `json:"archives"`
+	Categories         []Category `json:"categories"`
+	Backburner         []Task     `json:"backburner"`
+	Archives           []Task     `json:"archives"`
+	CategoryBackburner []Category `json:"categoryBackburner"`
+	CategoryArchives   []Category `json:"categoryArchives"`
 }
 
 type Category struct {
@@ -55,6 +59,7 @@ var (
 	ErrInvalidTaskSize   = errors.New("task size must be between 1 and 5")
 	ErrInvalidRequest    = errors.New("invalid request")
 	ErrDuplicateCategory = errors.New("duplicate category name")
+	ErrCategoryLimit     = errors.New("maximum number of categories reached")
 )
 
 func (t Task) Clone() Task {
@@ -95,6 +100,18 @@ func (b BoardState) Clone() BoardState {
 		out.Archives = make([]Task, len(b.Archives))
 		for i := range b.Archives {
 			out.Archives[i] = b.Archives[i].Clone()
+		}
+	}
+	if len(b.CategoryBackburner) > 0 {
+		out.CategoryBackburner = make([]Category, len(b.CategoryBackburner))
+		for i := range b.CategoryBackburner {
+			out.CategoryBackburner[i] = b.CategoryBackburner[i].Clone()
+		}
+	}
+	if len(b.CategoryArchives) > 0 {
+		out.CategoryArchives = make([]Category, len(b.CategoryArchives))
+		for i := range b.CategoryArchives {
+			out.CategoryArchives[i] = b.CategoryArchives[i].Clone()
 		}
 	}
 	return out

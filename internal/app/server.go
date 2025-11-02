@@ -164,8 +164,22 @@ func (s *Server) handleCategories(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/api/categories/")
-	id = strings.Trim(id, "/")
+	path := strings.TrimPrefix(r.URL.Path, "/api/categories/")
+	if path == "" {
+		http.NotFound(w, r)
+		return
+	}
+	if strings.HasSuffix(path, "/move") {
+		id := strings.TrimSuffix(path, "/move")
+		id = strings.TrimSuffix(id, "/")
+		if id == "" {
+			http.NotFound(w, r)
+			return
+		}
+		s.handleMoveCategory(w, r, id)
+		return
+	}
+	id := strings.Trim(path, "/")
 	if id == "" {
 		http.NotFound(w, r)
 		return
@@ -207,6 +221,27 @@ func (s *Server) handleCategoryByID(w http.ResponseWriter, r *http.Request) {
 	default:
 		methodNotAllowed(w, http.MethodPatch)
 	}
+}
+
+func (s *Server) handleMoveCategory(w http.ResponseWriter, r *http.Request, id string) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	var req MoveCategoryRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	cat, board, err := s.store.MoveCategory(id, req)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"category": cat,
+		"board":    board,
+	})
 }
 
 func (s *Server) handleFocus(w http.ResponseWriter, r *http.Request) {
@@ -266,7 +301,8 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrTaskNotFound),
 		errors.Is(err, ErrCategoryNotFound):
 		writeError(w, http.StatusNotFound, err)
-	case errors.Is(err, ErrCapacityExceeded):
+	case errors.Is(err, ErrCapacityExceeded),
+		errors.Is(err, ErrCategoryLimit):
 		writeError(w, http.StatusConflict, err)
 	case errors.Is(err, ErrDuplicateCategory):
 		writeError(w, http.StatusConflict, err)

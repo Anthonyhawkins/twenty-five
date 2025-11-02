@@ -54,7 +54,10 @@
               </template>
               
             </div>
-            
+            <div class="flex items-center gap-1">
+              <button @click.stop="backburnerCategory(ci)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-slate-300 bg-white hover:bg-slate-100">Back</button>
+              <button @click.stop="archiveCategory(ci)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-slate-300 bg-white hover:bg-slate-100">Archive</button>
+            </div>
           </div>
 
           <!-- 5-row grid inside each column -->
@@ -112,6 +115,56 @@
           <!-- Quick Add moved to global modal -->
           </div>
       </template>
+    </section>
+
+    <!-- Category Backburner -->
+    <section class="mt-8">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-semibold">Category Backburner</h2>
+        <span class="text-sm text-slate-500" x-text="categoryBackburner.length + ' categor' + (categoryBackburner.length===1 ? 'y' : 'ies')"></span>
+      </div>
+      <template x-if="categoryBackburner.length === 0">
+        <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">No categories on deck—shift one off the board to make room.</div>
+      </template>
+      <div class="mt-3 space-y-3" x-show="categoryBackburner.length">
+        <template x-for="cat in categoryBackburner" :key="cat.id">
+          <article class="w-full rounded-xl ring-1 p-3 flex items-center gap-3 bg-amber-50/60 ring-amber-200">
+            <div class="flex-1">
+              <h3 class="font-medium text-sm" x-text="cat.name"></h3>
+              <p class="text-xs text-slate-600" x-text="(cat.tasks?.length || 0) + ' task' + (cat.tasks?.length === 1 ? '' : 's') + ' · ' + categoryPoints(cat) + ' pts'"></p>
+            </div>
+            <div class="flex text-[10px]">
+              <button @click="restoreCategoryFromBackburner(cat)" class="px-2 py-0.5 rounded-l-md ring-1 ring-emerald-300 bg-white hover:bg-emerald-100 shrink-0">Restore</button>
+              <button @click="archiveCategoryFromBackburner(cat)" class="px-2 py-0.5 rounded-r-md ring-1 ring-slate-300 border-l border-slate-200 bg-white hover:bg-slate-100 shrink-0">Archive</button>
+            </div>
+          </article>
+        </template>
+      </div>
+    </section>
+
+    <!-- Category Archive -->
+    <section class="mt-8">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-semibold">Category Archive</h2>
+        <span class="text-sm text-slate-500" x-text="categoryArchives.length + ' categor' + (categoryArchives.length===1 ? 'y' : 'ies')"></span>
+      </div>
+      <template x-if="categoryArchives.length === 0">
+        <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">No archived categories—archive one when it is truly complete.</div>
+      </template>
+      <div class="mt-3 space-y-3" x-show="categoryArchives.length">
+        <template x-for="cat in categoryArchives" :key="cat.id">
+          <article class="w-full rounded-xl ring-1 p-3 flex items-center gap-3 bg-slate-50 ring-slate-200">
+            <div class="flex-1">
+              <h3 class="font-medium text-sm" x-text="cat.name"></h3>
+              <p class="text-xs text-slate-600" x-text="(cat.tasks?.length || 0) + ' task' + (cat.tasks?.length === 1 ? '' : 's') + ' · ' + categoryPoints(cat) + ' pts'"></p>
+            </div>
+            <div class="flex text-[10px]">
+              <button @click="restoreCategoryFromArchive(cat)" class="px-2 py-0.5 rounded-l-md ring-1 ring-emerald-300 bg-white hover:bg-emerald-100 shrink-0">Restore</button>
+              <button @click="backburnerCategoryFromArchive(cat)" class="px-2 py-0.5 rounded-r-md ring-1 ring-slate-300 border-l border-slate-200 bg-white hover:bg-slate-100 shrink-0">Backburner</button>
+            </div>
+          </article>
+        </template>
+      </div>
     </section>
 
     <!-- Backburner -->
@@ -272,6 +325,8 @@
         states: ['todo', 'doing', 'delegated', 'done'],
         filter: 'all',
         categories: [],
+        categoryBackburner: [],
+        categoryArchives: [],
         backburner: [],
         archives: [],
         loading: false,
@@ -299,6 +354,8 @@
         },
         setBoard(board) {
           this.categories = board?.categories ?? [];
+          this.categoryBackburner = board?.categoryBackburner ?? [];
+          this.categoryArchives = board?.categoryArchives ?? [];
           this.backburner = board?.backburner ?? [];
           this.archives = board?.archives ?? [];
         },
@@ -334,6 +391,30 @@
           console.error(err);
           alert(message);
         },
+        async moveCategory(id, location, bodyExtras = {}) {
+          if (!id || !location) return;
+          const payload = Object.assign({ location }, bodyExtras || {});
+          try {
+            const res = await this.api(`/api/categories/${id}/move`, {
+              method: 'POST',
+              body: JSON.stringify(payload),
+            });
+            this.updateAfterBoardResponse(res);
+          } catch (err) {
+            if (err.status === 409) {
+              const message = (err?.message || '').toLowerCase();
+              if (message.includes('maximum number of categories')) {
+                alert('You already have five categories on the board.');
+                return;
+              }
+              if (message.includes('capacity')) {
+                alert('This category is over the five point capacity—trim tasks before restoring.');
+                return;
+              }
+            }
+            this.handleActionError(err);
+          }
+        },
         updateAfterBoardResponse(payload) {
           if (payload?.board) {
             this.setBoard(payload.board);
@@ -365,6 +446,10 @@
         },
         visibleTasks(tasks) {
           return tasks || [];
+        },
+        categoryPoints(cat) {
+          if (!cat || !Array.isArray(cat.tasks)) return 0;
+          return cat.tasks.reduce((sum, task) => sum + (parseInt(task?.size, 10) || 0), 0);
         },
         parseLinksInput(raw) {
           if (!raw) return [];
@@ -709,6 +794,32 @@
           } catch (err) {
             this.handleActionError(err);
           }
+        },
+        async backburnerCategory(ci) {
+          const category = this.categories[ci];
+          if (!category) return;
+          await this.moveCategory(category.id, 'backburner');
+        },
+        async archiveCategory(ci) {
+          const category = this.categories[ci];
+          if (!category) return;
+          await this.moveCategory(category.id, 'archive');
+        },
+        async restoreCategoryFromBackburner(cat) {
+          if (!cat?.id) return;
+          await this.moveCategory(cat.id, 'board');
+        },
+        async archiveCategoryFromBackburner(cat) {
+          if (!cat?.id) return;
+          await this.moveCategory(cat.id, 'archive');
+        },
+        async restoreCategoryFromArchive(cat) {
+          if (!cat?.id) return;
+          await this.moveCategory(cat.id, 'board');
+        },
+        async backburnerCategoryFromArchive(cat) {
+          if (!cat?.id) return;
+          await this.moveCategory(cat.id, 'backburner');
         },
         startEditCategory(ci) {
           this.editingCategoryIndex = ci;
