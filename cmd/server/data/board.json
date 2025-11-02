@@ -3,7 +3,24 @@
     {
       "id": "yrtpdik39fq1ng9c",
       "name": "Backlog",
-      "tasks": []
+      "tasks": [
+        {
+          "id": "cdx5x1op329l53oc",
+          "name": "A bigger task",
+          "description": "",
+          "notes": "",
+          "state": "delegated",
+          "size": 5
+        },
+        {
+          "id": "8lvb4uvnqdrnrln8",
+          "name": "Make it bigger",
+          "description": "make the logo bigger",
+          "notes": "",
+          "state": "todo",
+          "size": 1
+        }
+      ]
     },
     {
       "id": "t61393ahsmaj50vd",
@@ -13,12 +30,30 @@
     {
       "id": "ov1s316rerhldx61",
       "name": "Build",
-      "tasks": []
+      "tasks": [
+        {
+          "id": "90owdpv82346ds42",
+          "name": "Docs pass",
+          "description": "README + usage examples.",
+          "notes": "",
+          "state": "todo",
+          "size": 2
+        }
+      ]
     },
     {
       "id": "6crexqdet69loou2",
-      "name": "Launch",
-      "tasks": []
+      "name": "Stuff",
+      "tasks": [
+        {
+          "id": "2caqke4hxoho3vy1",
+          "name": "Release prep",
+          "description": "Changelog, versioning, and rollout plan.",
+          "notes": "",
+          "state": "done",
+          "size": 5
+        }
+      ]
     },
     {
       "id": "oha9cpizu4gz0n5w",
@@ -37,26 +72,6 @@
       "size": 1,
       "sourceId": "ov1s316rerhldx61",
       "source": "Build"
-    },
-    {
-      "id": "90owdpv82346ds42",
-      "name": "Docs pass",
-      "description": "README + usage examples.",
-      "notes": "",
-      "state": "doing",
-      "size": 2,
-      "sourceId": "ov1s316rerhldx61",
-      "source": "Build"
-    },
-    {
-      "id": "2caqke4hxoho3vy1",
-      "name": "Release prep",
-      "description": "Changelog, versioning, and rollout plan.",
-      "notes": "",
-      "state": "done",
-      "size": 5,
-      "sourceId": "6crexqdet69loou2",
-      "source": "Launch"
     },
     {
       "id": "2360z85qyxler28u",

@@ -31,6 +31,9 @@
         <div class="flex items-center gap-2 text-sm">
           <span class="size-3 rounded-full bg-emerald-300"></span> Done
         </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="size-3 rounded-full bg-amber-300"></span> Delegated
+        </div>
         <div class="hidden sm:block w-px h-5 bg-slate-300 mx-1"></div>
         
       </div>
@@ -88,9 +91,10 @@
                   <span></span>
                   <div class="mt-2 flex w-full text-[10px] items-center rounded-b-xl overflow-hidden">
                     <button @click.stop="toggleFocus(t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 hover:bg-slate-100" x-text="'Focus'"></button>
-                    <button @click.stop="toggleUrgent(t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100" x-text="'Urgent'"></button>
-                    <button @click.stop="openEditFromColumn(ci, t)" class="px-2 py-0.5 ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Edit</button>
-                    <button @click.stop="archiveFromColumn(ci, t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Archive</button>
+                    <button @click.stop="toggleUrgent(t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100" x-text="'Urg'"></button>
+                    <button @click.stop="openEditFromColumn(ci, t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Edit</button>
+                    <button @click.stop="sendToBackburnerFromColumn(ci, t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Back</button>
+                    <button @click.stop="archiveFromColumn(ci, t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Arc</button>
                   </div>
                 </div>
               </article>
@@ -265,7 +269,7 @@
   <script>
     function todoGrid() {
       return {
-        states: ['todo', 'doing', 'done'],
+        states: ['todo', 'doing', 'delegated', 'done'],
         filter: 'all',
         categories: [],
         backburner: [],
@@ -341,6 +345,7 @@
           const byState = {
             todo: 'bg-slate-50 ring-slate-200',
             doing: 'bg-blue-50 ring-blue-200',
+            delegated: 'bg-amber-50 ring-amber-200',
             done: 'bg-emerald-50 ring-emerald-200',
           }[t?.state] || 'bg-white ring-slate-200';
           const emphasis = t?.focused
@@ -354,6 +359,7 @@
           return {
             todo: 'bg-white text-slate-600 ring-slate-200',
             doing: 'bg-white text-blue-700 ring-blue-200',
+            delegated: 'bg-white text-amber-700 ring-amber-200',
             done: 'bg-white text-emerald-700 ring-emerald-200',
           }[s] || 'bg-white ring-slate-200';
         },
@@ -408,7 +414,7 @@
             description: f.description || '',
             notes: f.notes || '',
             state: f.state || 'todo',
-            size: 1,
+            size: Math.min(Math.max(parseInt(f.size || 1, 10), 1), 5),
             links: this.parseLinksInput(f.links),
           };
           try {
@@ -478,6 +484,24 @@
             const res = await this.api(`/api/tasks/${task.id}`, {
               method: 'PATCH',
               body: JSON.stringify({ urgent: !task.urgent, state: task.state }),
+            });
+            this.updateAfterBoardResponse(res);
+          } catch (err) {
+            this.handleActionError(err);
+          }
+        },
+        async sendToBackburnerFromColumn(ci, task) {
+          if (!task?.id) return;
+          const col = this.categories[ci];
+          if (!col) return;
+          try {
+            const res = await this.api(`/api/tasks/${task.id}/move`, {
+              method: 'POST',
+              body: JSON.stringify({
+                location: 'backburner',
+                sourceId: col.id,
+                source: col.name,
+              }),
             });
             this.updateAfterBoardResponse(res);
           } catch (err) {
