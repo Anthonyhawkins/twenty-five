@@ -62,10 +62,16 @@
                 class="group relative rounded-xl ring-1 p-3 flex flex-col overflow-visible cursor-pointer select-none transition-shadow"
                 :class="taskClasses(t)"
                 :style="'grid-row: span ' + t.size + ' / span ' + t.size"
-                @click="nextState(t)"
               >
                 <!-- Size badge overlay -->
-                <span class="absolute -top-2 -left-2 z-10 w-5 h-5 bg-white ring-1 ring-slate-300 shadow-sm flex items-center justify-center text-[10px] font-semibold text-slate-600 rounded-md" x-text="t.size"></span>
+                <button
+                  type="button"
+                  class="absolute -top-2 -left-2 z-10 w-5 h-5 bg-white ring-1 ring-slate-300 shadow-sm flex items-center justify-center text-[10px] font-semibold text-slate-600 rounded-md hover:bg-slate-100 transition"
+                  @click.stop="nextState(t)"
+                  :aria-label="`Advance state for ${t.name}`"
+                >
+                  <span x-text="t.size"></span>
+                </button>
                 <div class="flex items-center justify-between gap-2">
                   <h3 class="font-semibold text-sm leading-tight flex items-center gap-1"><span x-text="t.name"></span><template x-if="t.urgent"><span>🔥</span></template></h3>
                   
@@ -331,15 +337,18 @@
           return payload;
         },
         taskClasses(t) {
-          const base = 'ring-slate-200 bg-white hover:shadow-sm';
+          const base = 'hover:shadow-sm';
           const byState = {
             todo: 'bg-slate-50 ring-slate-200',
             doing: 'bg-blue-50 ring-blue-200',
             done: 'bg-emerald-50 ring-emerald-200',
-          }[t?.state] || '';
-          if (t?.focused) return base + ' ring-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.6)]';
-          if (t?.urgent) return base + ' ring-red-300';
-          return base + ' ' + byState;
+          }[t?.state] || 'bg-white ring-slate-200';
+          const emphasis = t?.focused
+            ? ' ring-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.6)]'
+            : t?.urgent
+              ? ' ring-red-300'
+              : '';
+          return base + ' ' + byState + emphasis;
         },
         badgeClasses(s) {
           return {
@@ -468,7 +477,7 @@
           try {
             const res = await this.api(`/api/tasks/${task.id}`, {
               method: 'PATCH',
-              body: JSON.stringify({ urgent: !task.urgent }),
+              body: JSON.stringify({ urgent: !task.urgent, state: task.state }),
             });
             this.updateAfterBoardResponse(res);
           } catch (err) {

@@ -143,9 +143,12 @@ func (s *Store) UpdateTask(id string, patch TaskPatch) (Task, BoardState, error)
 			return err
 		}
 		if loc.Kind == LocationCategory {
-			normalizeUrgent(state, loc.CategoryIndex, taskPtr.ID)
+			if taskPtr.Urgent {
+				normalizeUrgent(state, loc.CategoryIndex, taskPtr.ID)
+			} else {
+				normalizeUrgent(state, loc.CategoryIndex, "")
+			}
 		}
-		normalizeFocus(state, taskPtr.ID)
 		if loc.Kind == LocationCategory {
 			if err := ensureCapacity(state.Categories[loc.CategoryIndex]); err != nil {
 				return err
