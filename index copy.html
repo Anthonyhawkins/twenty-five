@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TwentyFive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    /* Prevent column overflow scrollbars from shifting layout */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+  <div class="max-w-7xl mx-auto p-6" x-data="todoGrid()">
+    <!-- Header -->
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">TwentyFive</h1>
+        <p class="text-sm text-slate-600">A task manager with a focus on 25 points.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="size-3 rounded-full bg-slate-300"></span> Todo
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="size-3 rounded-full bg-blue-300"></span> Doing
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="size-3 rounded-full bg-emerald-300"></span> Done
+        </div>
+        <div class="hidden sm:block w-px h-5 bg-slate-300 mx-1"></div>
+        
+      </div>
+    </header>
+
+    <!-- Grid -->
+    <section class="mt-6 grid grid-cols-1 sm:grid-cols-5 gap-4">
+      <template x-for="(col, ci) in categories" :key="col.id">
+        <div class="rounded-2xl bg-white ring-1 ring-slate-200 p-3 flex flex-col">
+          <!-- Column header -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <template x-if="editingCategoryIndex !== ci">
+                <h2 class="font-medium text-slate-800 cursor-text" @click="startEditCategory(ci)" x-text="col.name"></h2>
+              </template>
+              <template x-if="editingCategoryIndex === ci">
+                <input type="text" x-model="editingCategoryName" @keydown.enter.prevent="commitEditCategory(ci)" @blur="commitEditCategory(ci)" class="px-2 py-1 rounded-md ring-1 ring-slate-300 text-sm"/>
+              </template>
+              
+            </div>
+            
+          </div>
+
+          <!-- 5-row grid inside each column -->
+          <div class="grid grid-rows-5 gap-6 grow min-h-[28rem]">
+            <!-- Tasks -->
+            <template x-for="(t, ti) in visibleTasks(col.tasks)" :key="t.id">
+              <article
+                class="group relative rounded-xl ring-1 p-3 flex flex-col overflow-visible cursor-pointer select-none transition-shadow"
+                :class="taskClasses(t)"
+                :style="'grid-row: span ' + t.size + ' / span ' + t.size"
+                @click="nextState(t)"
+              >
+                <!-- Size badge overlay -->
+                <span class="absolute -top-2 -left-2 z-10 w-5 h-5 bg-white ring-1 ring-slate-300 shadow-sm flex items-center justify-center text-[10px] font-semibold text-slate-600 rounded-md" x-text="t.size"></span>
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="font-semibold text-sm leading-tight flex items-center gap-1"><span x-text="t.name"></span><template x-if="t.urgent"><span>🔥</span></template></h3>
+                  
+                </div>
+                <p class="mt-1 text-xs text-slate-700/80 leading-snug line-clamp-4" x-text="t.description"></p>
+                <div class="mt-auto pt-2 text-[10px] text-slate-500 flex items-center justify-between">
+                  <span></span>
+                  <div class="mt-2 flex w-full text-[10px] items-center rounded-b-xl overflow-hidden">
+                    <button @click.stop="toggleFocus(t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 hover:bg-slate-100" x-text="'Focus'"></button>
+                    <button @click.stop="toggleUrgent(t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100" x-text="'Urgent'"></button>
+                    <button @click.stop="openEditFromColumn(ci, t)" class="px-2 py-0.5 ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Edit</button>
+                    <button @click.stop="archiveFromColumn(ci, t)" class="px-2 py-0.5 flex-1 text-center ring-1 ring-slate-300 border-l border-slate-200 hover:bg-slate-100">Archive</button>
+                  </div>
+                </div>
+              </article>
+            </template>
+
+          </div>
+
+          <!-- Column footer: +Task bottom-left, Capacity bottom-right -->
+          <div class="mt-2 flex items-center justify-between">
+            <button @click="openQuickAdd(ci)" class="text-xs px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 ring-1 ring-slate-200">+ Task</button>
+            <div class="text-xs text-slate-500">
+              Capacity: <span x-text="col.tasks.reduce((s,t)=>s+t.size,0)"></span>/5
+            </div>
+          </div>
+          <!-- Quick Add moved to global modal -->
+          </div>
+      </template>
+    </section>
+
+    <!-- Backburner -->
+    <section class="mt-8">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-semibold">Backburner</h2>
+        <span class="text-sm text-slate-500" x-text="backburner.length + ' task' + (backburner.length===1?'':'s')"></span>
+      </div>
+      <template x-if="backburner.length === 0">
+        <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">No overflow tasks — great job keeping the board tight.</div>
+      </template>
+      <div class="mt-3 space-y-3" x-show="backburner.length">
+        <template x-for="t in visibleTasks(backburner)" :key="t.id">
+          <article class="w-full rounded-xl ring-1 p-2 sm:p-3 flex items-center gap-3 bg-amber-50 ring-amber-200 cursor-pointer" @click="nextState(t)">
+            <span class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-amber-300 bg-white shrink-0" x-text="sourceLabel(t)"></span>
+            <h3 class="font-medium text-sm shrink-0" x-text="t.name"></h3>
+            <p class="text-xs text-slate-700/80 flex-1 truncate" x-text="t.description"></p>
+            <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md ring-1 shrink-0" :class="badgeClasses(t.state)" x-text="t.state"></span>
+            <span class="text-sm font-semibold text-slate-400 shrink-0" x-text="t.size"></span>
+            <div class="flex text-[10px]">
+            <button @click.stop="openEditFromBackburner(t)" class="px-2 py-0.5 rounded-l-md ring-1 ring-slate-300 bg-white hover:bg-slate-100 shrink-0">Edit</button>
+            <button @click.stop="archiveFromBackburner(t)" class="px-2 py-0.5 rounded-none ring-1 ring-slate-300 border-l border-slate-200 bg-white hover:bg-slate-100 shrink-0">Archive</button>
+          </div>
+          <button @click.stop="takeFromBackburner(t)" class="text-[10px] px-2 py-0.5 rounded-r-md ring-1 ring-emerald-300 bg-white hover:bg-emerald-100 shrink-0">Take</button>
+          </article>
+        </template>
+      </div>
+    </section>
+
+    <!-- Archive -->
+    <section class="mt-8">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-semibold">Archive</h2>
+        <span class="text-sm text-slate-500" x-text="archives.length + ' task' + (archives.length===1?'':'s')"></span>
+      </div>
+      <template x-if="archives.length === 0">
+        <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">No archived tasks yet.</div>
+      </template>
+      <div class="mt-3 space-y-3" x-show="archives.length">
+        <template x-for="a in archives" :key="a.id">
+          <article class="w-full rounded-xl ring-1 p-2 sm:p-3 flex items-center gap-3 bg-slate-50 ring-slate-200">
+            <span class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-slate-300 bg-white shrink-0" x-text="sourceLabel(a)"></span>
+            <h3 class="font-medium text-sm shrink-0" x-text="a.name"></h3>
+            <p class="text-xs text-slate-700/80 flex-1 truncate" x-text="a.description"></p>
+            <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md ring-1 shrink-0" :class="badgeClasses(a.state)" x-text="a.state"></span>
+            <span class="text-sm font-semibold text-slate-400 shrink-0" x-text="a.size"></span>
+            <button @click.stop="openEditFromArchive(a)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-slate-300 bg-white hover:bg-slate-100 shrink-0">Edit</button>
+            <button @click.stop="restoreFromArchive(a)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-emerald-300 bg-white hover:bg-emerald-100 shrink-0">Restore</button>
+            <button @click.stop="deleteFromArchive(a)" class="text-[10px] px-2 py-0.5 rounded-md ring-1 ring-rose-300 bg-white hover:bg-rose-100 shrink-0">Delete</button>
+          </article>
+        </template>
+      </div>
+    </section>
+
+    <!-- Quick Add Modal -->
+    <div x-cloak x-show="quickAdd.open" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="quickAdd.open=false" role="dialog" aria-modal="true" aria-labelledby="qa_title">
+      <div class="absolute inset-0 bg-slate-900/50" @click="quickAdd.open=false"></div>
+      <div class="relative w-full max-w-2xl rounded-2xl bg-white p-6 ring-1 ring-slate-200 shadow-xl">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 id="qa_title" class="text-lg font-semibold">Add Task</h3>
+            <p class="text-sm text-slate-500">Category: <span class="font-medium" x-text="categories[quickAdd.columnIndex]?.name || ''"></span></p>
+          </div>
+          <button @click="quickAdd.open=false" class="rounded-md px-2 py-1 text-sm ring-1 ring-slate-300 hover:bg-slate-100">Close</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+          <label class="sm:col-span-3 text-xs">Name
+            <input type="text" x-model="quickAdd.form.name" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white">
+          </label>
+          <label class="sm:col-span-3 text-xs">State
+            <select x-model="quickAdd.form.state" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white">
+              <option>todo</option>
+              <option>doing</option>
+              <option>done</option>
+            </select>
+          </label>
+          <label class="sm:col-span-6 text-xs">Description
+            <textarea x-model="quickAdd.form.description" rows="3" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white"></textarea>
+          </label>
+          <label class="sm:col-span-6 text-xs">Notes
+            <textarea x-model="quickAdd.form.notes" rows="4" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="Private notes for this task..."></textarea>
+          </label>
+          <div class="sm:col-span-2 text-xs">
+            Size (1–5)
+            <div class="mt-1 flex gap-1">
+              <template x-for="n in 5">
+                <button type="button" @click="quickAdd.form.size = n" :class="quickAdd.form.size === n ? 'bg-slate-300' : 'bg-slate-100 hover:bg-slate-200'" class="w-6 h-6 text-xs rounded flex items-center justify-center ring-1 ring-slate-300" x-text="n"></button>
+              </template>
+            </div>
+          </div>
+          <div class="sm:col-span-4 flex items-end justify-end gap-2">
+            <button @click="addTask(quickAdd.columnIndex)" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Add Task</button>
+            <button @click="quickAdd.open=false" class="px-4 py-2 rounded-md bg-white ring-1 ring-slate-300 text-sm">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div x-cloak x-show="quickEdit.open" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="quickEdit.open=false" role="dialog" aria-modal="true" aria-labelledby="qe_title">
+      <div class="absolute inset-0 bg-slate-900/50" @click="quickEdit.open=false"></div>
+      <div class="relative w-full max-w-2xl rounded-2xl bg-white p-6 ring-1 ring-slate-200 shadow-xl">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 id="qe_title" class="text-lg font-semibold">Edit Task</h3>
+            <p class="text-sm text-slate-500"><span x-text="quickEdit.location==='column' ? ('Category: ' + (categories[quickEdit.columnIndex]?.name||'')) : (quickEdit.location==='backburner' ? 'Backburner' : 'Archive')"></span></p>
+          </div>
+          <button @click="quickEdit.open=false" class="rounded-md px-2 py-1 text-sm ring-1 ring-slate-300 hover:bg-slate-100">Close</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+          <label class="sm:col-span-3 text-xs">Name
+            <input type="text" x-model="quickEdit.form.name" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white">
+          </label>
+          <label class="sm:col-span-3 text-xs">State
+            <select x-model="quickEdit.form.state" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white">
+              <option>todo</option>
+              <option>doing</option>
+              <option>done</option>
+            </select>
+          </label>
+          <label class="sm:col-span-6 text-xs">Description
+            <textarea x-model="quickEdit.form.description" rows="3" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white"></textarea>
+          </label>
+          <label class="sm:col-span-6 text-xs">Notes
+            <textarea x-model="quickEdit.form.notes" rows="4" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="Private notes for this task..."></textarea>
+          </label>
+          <div class="sm:col-span-2 text-xs">
+            Size (1–5)
+            <div class="mt-1 flex gap-1">
+              <template x-for="n in 5">
+                <button type="button" @click="quickEdit.form.size = n" :class="quickEdit.form.size === n ? 'bg-slate-300' : 'bg-slate-100 hover:bg-slate-200'" class="w-6 h-6 text-xs rounded flex items-center justify-center ring-1 ring-slate-300" x-text="n"></button>
+              </template>
+            </div>
+          </div>
+          <div class="sm:col-span-4 flex items-end justify-end gap-2">
+            <button @click="saveEdit()" class="px-4 py-2 rounded-md bg-slate-900 text-white text-sm">Save</button>
+            <button @click="quickEdit.open=false" class="px-4 py-2 rounded-md bg-white ring-1 ring-slate-300 text-sm">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-6 text-xs text-slate-500">
+      Built with Alpine.js + Tailwind. Demo data only.
+    </footer>
+  </div>
+
+  <script>
+    function todoGrid() {
+      return {
+        states: ['todo', 'doing', 'done'],
+        filter: 'all',
+        quickAdd: { open: false, columnIndex: null, form: { name: '', description: '', notes: '', state: 'todo', size: 1 } },
+        quickEdit: { open: false, location: null, columnIndex: null, id: null, form: { name: '', description: '', notes: '', state: 'todo', size: 1 } },
+        categories: [ /* categories hold id + name for renaming safety */
+          { id: uid(), name: 'Backlog',
+            tasks: [
+              { id: uid(), name: 'Research idea', description: 'Collect references and create a quick outline.', state: 'todo', size: 2 },
+              { id: uid(), name: 'Spike prototype', description: 'Throwaway exploration to de-risk approach.', state: 'doing', size: 2 },
+              { id: uid(), name: 'Triage inbox', description: 'Sort and label incoming items.', state: 'todo', size: 1 },
+            ]
+          },
+          { id: uid(), name: 'Planning',
+            tasks: [
+              { id: uid(), name: 'Roadmap v1', description: 'Define milestones and success criteria.', state: 'doing', size: 3 },
+              { id: uid(), name: 'Team sync', description: 'Align on goals, scope, and timelines.', state: 'todo', size: 2 },
+            ]
+          },
+          { id: uid(), name: 'Build',
+            tasks: [
+              { id: uid(), name: 'Implement core', description: 'Core feature work across modules.', state: 'doing', size: 2 },
+              { id: uid(), name: 'Write tests', description: 'Unit and integration coverage.', state: 'todo', size: 1 },
+              { id: uid(), name: 'Docs pass', description: 'README + usage examples.', state: 'todo', size: 2 },
+            ]
+          },
+          { id: uid(), name: 'Launch',
+            tasks: [
+              { id: uid(), name: 'Release prep', description: 'Changelog, versioning, and rollout plan.', state: 'todo', size: 5 },
+            ]
+          },
+          { id: uid(), name: 'Personal',
+            tasks: [
+              { id: uid(), name: 'Workout', description: 'Split day routine; 45 minutes.', state: 'doing', size: 2 },
+              { id: uid(), name: 'Groceries', description: 'Restock staples and veggies.', state: 'todo', size: 1 },
+              { id: uid(), name: 'Call mom', description: 'Weekly check-in.', state: 'done', size: 1 },
+              { id: uid(), name: 'Read 30 mins', description: 'Continue current book.', state: 'todo', size: 1 },
+            ]
+          },
+        ],
+
+        backburner: [],
+
+        archives: [],
+
+        taskClasses(t) {
+          const base = 'ring-slate-200 bg-white hover:shadow-sm';
+          const byState = {
+            'todo': 'bg-slate-50 ring-slate-200',
+            'doing': 'bg-blue-50 ring-blue-200',
+            'done': 'bg-emerald-50 ring-emerald-200',
+          }[t.state] || '';
+          if (t.focused) return base + ' ring-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.6)]';
+          if (t.urgent) return base + ' ring-red-300';
+          return base + ' ' + byState;
+        },
+        badgeClasses(s) {
+          return {
+            'todo': 'bg-white text-slate-600 ring-slate-200',
+            'doing': 'bg-white text-blue-700 ring-blue-200',
+            'done': 'bg-white text-emerald-700 ring-emerald-200'
+          }[s] || 'bg-white ring-slate-200';
+        },
+        nextState(t) {
+          const idx = this.states.indexOf(t.state);
+          t.state = this.states[(idx + 1) % this.states.length];
+        },
+        visibleTasks(tasks) {
+          return tasks;
+        },
+        fillerCells(tasks) {
+          // compute how many row units are used by visible tasks and return count of remaining single cells
+          const used = this.visibleTasks(tasks).reduce((sum, t) => sum + Math.min(Math.max(t.size, 1), 5), 0);
+          const remaining = Math.max(0, 5 - used);
+          return Array.from({ length: remaining }, (_, i) => i);
+        },
+        openQuickAdd(ci) {
+          this.quickAdd.open = true;
+          this.quickAdd.columnIndex = ci;
+          this.quickAdd.form = { name: '', description: '', notes: '', state: 'todo', size: 1 };
+        },
+        addTask(ci) {
+          const f = this.quickAdd.form;
+          const size = 1; // always start new tasks with size 1
+
+          // enforce max column size 5
+          const currentTotal = this.categories[ci].tasks.reduce((s, t) => s + t.size, 0);
+          if (currentTotal + size > 5) {
+            // send to backburner instead of blocking
+            this.backburner.push({ id: uid(), name: f.name || 'Untitled', description: f.description || '', state: f.state, size, sourceId: this.categories[ci].id, source: this.categories[ci].name });
+            this.quickAdd.open = false;
+            return;
+          }
+
+          this.categories[ci].tasks.push({ id: uid(), name: f.name || 'Untitled', description: f.description || '', notes: f.notes || '', state: f.state, size });
+          this.quickAdd.open = false;
+        },
+        archiveFromColumn(ci, task) {
+          // remove from column
+          const col = this.categories[ci];
+          const idx = col.tasks.findIndex(x => x.id === task.id);
+          if (idx !== -1) {
+            const [removed] = col.tasks.splice(idx, 1);
+            this.archives.push({ ...removed, sourceId: col.id, source: col.name });
+          }
+        },
+        archiveFromBackburner(task) {
+          // remove from backburner
+          const idx = this.backburner.findIndex(x => x.id === task.id);
+          if (idx !== -1) {
+            const [removed] = this.backburner.splice(idx, 1);
+            this.archives.push({ ...removed, sourceId: removed.sourceId ?? null, source: removed.source });
+          }
+        },
+        takeFromBackburner(task) {
+          // move a backburner task into its original category if space allows
+          const ci = this.findCategoryIndexByTaskSource(task);
+          if (ci === -1) {
+            alert('Original category not found for this task.');
+            return;
+          }
+          const used = this.categories[ci].tasks.reduce((s, t) => s + t.size, 0);
+          if (used + task.size > 5) {
+            alert(`Not enough space in ${this.categories[ci].name} (max 5).`);
+            return;
+          }
+          const idx2 = this.backburner.findIndex(x => x.id === task.id);
+          if (idx2 !== -1) {
+            const [removed] = this.backburner.splice(idx2, 1);
+            this.categories[ci].tasks.push(removed);
+          }
+        },
+        restoreFromArchive(task) {
+          const ci = this.findCategoryIndexByTaskSource(task);
+          if (ci === -1) { alert('Original category not found.'); return; }
+          const used = this.categories[ci].tasks.reduce((s, t) => s + t.size, 0);
+          if (used + task.size > 5) { alert(`Not enough space in ${this.categories[ci].name} (max 5).`); return; }
+          const idx = this.archives.findIndex(x => x.id === task.id);
+          if (idx !== -1) {
+            const [removed] = this.archives.splice(idx, 1);
+            this.categories[ci].tasks.push(removed);
+          }
+        },
+        deleteFromArchive(task) {
+          const idx = this.archives.findIndex(x => x.id === task.id);
+          if (idx !== -1) { this.archives.splice(idx, 1); }
+        },
+        sourceLabel(task) {
+          if (task.sourceId) {
+            const c = this.categories.find(c => c.id === task.sourceId);
+            if (c) return c.name;
+          }
+          return task.source || 'Unknown';
+        },
+        findCategoryIndexByTaskSource(task) {
+          if (task.sourceId) {
+            const i = this.categories.findIndex(c => c.id === task.sourceId);
+            if (i !== -1) return i;
+          }
+          return this.categories.findIndex(c => c.name === task.source);
+        },
+        openEditFromColumn(ci, task) {
+          this.quickEdit.open = true;
+          this.quickEdit.location = 'column';
+          this.quickEdit.columnIndex = ci;
+          this.quickEdit.id = task.id;
+          this.quickEdit.form = { name: task.name, description: task.description, notes: task.notes || '', state: task.state, size: task.size };
+        },
+        openEditFromBackburner(task) {
+          this.quickEdit.open = true;
+          this.quickEdit.location = 'backburner';
+          this.quickEdit.columnIndex = null;
+          this.quickEdit.id = task.id;
+          this.quickEdit.form = { name: task.name, description: task.description, notes: task.notes || '', state: task.state, size: task.size };
+        },
+        openEditFromArchive(task) {
+          this.quickEdit.open = true;
+          this.quickEdit.location = 'archive';
+          this.quickEdit.columnIndex = null;
+          this.quickEdit.id = task.id;
+          this.quickEdit.form = { name: task.name, description: task.description, notes: task.notes || '', state: task.state, size: task.size };
+        },
+        saveEdit() {
+          const f = this.quickEdit.form;
+          const newSize = Math.min(Math.max(parseInt(f.size || 1, 10), 1), 5);
+          if (this.quickEdit.location === 'column') {
+            const ci = this.quickEdit.columnIndex;
+            const col = this.categories[ci];
+            const idx = col.tasks.findIndex(x => x.id === this.quickEdit.id);
+            if (idx !== -1) {
+              const usedExcluding = col.tasks.reduce((s, x, i) => s + (i === idx ? 0 : x.size), 0);
+              if (usedExcluding + newSize > 5) { alert(`Not enough space in ${col.name} (max 5).`); return; }
+              Object.assign(col.tasks[idx], { name: f.name || 'Untitled', description: f.description || '', notes: f.notes || '', state: f.state, size: newSize });
+            }
+          } else if (this.quickEdit.location === 'backburner') {
+            const idx = this.backburner.findIndex(x => x.id === this.quickEdit.id);
+            if (idx !== -1) {
+              Object.assign(this.backburner[idx], { name: f.name || 'Untitled', description: f.description || '', notes: f.notes || '', state: f.state, size: newSize });
+            }
+          } else if (this.quickEdit.location === 'archive') {
+            const idx = this.archives.findIndex(x => x.id === this.quickEdit.id);
+            if (idx !== -1) {
+              Object.assign(this.archives[idx], { name: f.name || 'Untitled', description: f.description || '', notes: f.notes || '', state: f.state, size: newSize });
+            }
+          }
+          this.quickEdit.open = false;
+        },
+        // Category renaming
+        editingCategoryIndex: null,
+        editingCategoryName: '',
+        startEditCategory(ci) {
+          this.editingCategoryIndex = ci;
+          this.editingCategoryName = this.categories[ci].name;
+          this.$nextTick(() => {
+            const input = document.activeElement;
+            if (input && input.tagName === 'INPUT') input.select();
+          });
+        },
+        commitEditCategory(ci) {
+          const name = (this.editingCategoryName || '').trim();
+          if (!name) { this.cancelEditCategory(); return; }
+          this.categories[ci].name = name;
+          this.cancelEditCategory();
+        },
+        cancelEditCategory() {
+          this.editingCategoryIndex = null;
+          this.editingCategoryName = '';
+        },
+        toggleFocus(task) {
+          const wasFocused = !!task.focused;
+          this.categories.forEach(c => c.tasks.forEach(x => x.focused = false));
+          this.backburner.forEach(x => x.focused = false);
+          this.archives.forEach(x => x.focused = false);
+          task.focused = !wasFocused;
+        },
+        toggleUrgent(task) {
+          // single urgent per column; toggle on same task turns it off
+          const wasUrgent = !!task.urgent;
+          const ci = this.categories.findIndex(c => c.tasks.some(x => x.id === task.id));
+          if (ci !== -1) {
+            this.categories[ci].tasks.forEach(x => x.urgent = false);
+          }
+          task.urgent = !wasUrgent;
+        }
+      };
+    }
+    // simple unique id generator for keys
+    function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  </script>
+</body>
+</html>
