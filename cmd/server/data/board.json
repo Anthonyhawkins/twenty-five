@@ -1,0 +1,154 @@
+{
+  "categories": [
+    {
+      "id": "yrtpdik39fq1ng9c",
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "3gcr2ttx861ht8lx",
+          "name": "Research idea",
+          "description": "Collect references and create a quick outline.",
+          "notes": "",
+          "state": "todo",
+          "size": 2
+        },
+        {
+          "id": "hyn5y5qhe9du7j6o",
+          "name": "Spike prototype",
+          "description": "Throwaway exploration to de-risk approach.",
+          "notes": "",
+          "state": "todo",
+          "size": 2,
+          "urgent": true
+        },
+        {
+          "id": "923k87s43hzzstvv",
+          "name": "My task",
+          "description": "get this done",
+          "notes": "this is a big long list of shit to do",
+          "state": "todo",
+          "size": 1
+        }
+      ]
+    },
+    {
+      "id": "t61393ahsmaj50vd",
+      "name": "Planning",
+      "tasks": [
+        {
+          "id": "u4ubm497gzcubbhs",
+          "name": "Roadmap v1",
+          "description": "Define milestones and success criteria.",
+          "notes": "",
+          "state": "done",
+          "size": 3,
+          "urgent": true,
+          "focused": true
+        },
+        {
+          "id": "ewo3qwtglcofk6ht",
+          "name": "Team sync",
+          "description": "Align on goals, scope, and timelines.",
+          "notes": "",
+          "state": "todo",
+          "size": 2
+        }
+      ]
+    },
+    {
+      "id": "ov1s316rerhldx61",
+      "name": "Build",
+      "tasks": [
+        {
+          "id": "na19c3la1xbj9sq0",
+          "name": "Implement core",
+          "description": "Core feature work across modules.",
+          "notes": "",
+          "state": "doing",
+          "size": 2
+        },
+        {
+          "id": "ar1cc0m35yrcnnk8",
+          "name": "Write tests",
+          "description": "Unit and integration coverage.",
+          "notes": "",
+          "state": "todo",
+          "size": 1
+        },
+        {
+          "id": "90owdpv82346ds42",
+          "name": "Docs pass",
+          "description": "README + usage examples.",
+          "notes": "",
+          "state": "todo",
+          "size": 2
+        }
+      ]
+    },
+    {
+      "id": "6crexqdet69loou2",
+      "name": "Launch",
+      "tasks": [
+        {
+          "id": "2caqke4hxoho3vy1",
+          "name": "Release prep",
+          "description": "Changelog, versioning, and rollout plan.",
+          "notes": "",
+          "state": "todo",
+          "size": 5
+        }
+      ]
+    },
+    {
+      "id": "oha9cpizu4gz0n5w",
+      "name": "Personal",
+      "tasks": [
+        {
+          "id": "2360z85qyxler28u",
+          "name": "Workout",
+          "description": "Split day routine; 45 minutes.",
+          "notes": "",
+          "state": "doing",
+          "size": 2
+        },
+        {
+          "id": "yf2wxhfta7p90ymz",
+          "name": "Groceries",
+          "description": "Restock staples and veggies.",
+          "notes": "",
+          "state": "todo",
+          "size": 1
+        },
+        {
+          "id": "qnwxlppztbahuwto",
+          "name": "Call mom",
+          "description": "Weekly check-in.",
+          "notes": "",
+          "state": "done",
+          "size": 1
+        },
+        {
+          "id": "sgrki2wl5aldqy3n",
+          "name": "Read 30 mins",
+          "description": "Continue current book.",
+          "notes": "",
+          "state": "todo",
+          "size": 1
+        }
+      ]
+    }
+  ],
+  "backburner": [],
+  "archives": [
+    {
+      "id": "p4bmbq04kj6xadmp",
+      "name": "Triage inbox",
+      "description": "Sort and label incoming items.",
+      "notes": "",
+      "state": "todo",
+      "size": 1,
+      "sourceId": "yrtpdik39fq1ng9c",
+      "source": "Backlog"
+    }
+  ]
+}
