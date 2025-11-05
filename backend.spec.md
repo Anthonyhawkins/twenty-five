@@ -51,7 +51,7 @@ type Task struct {
     Name        string        `json:"name"`
     Description string        `json:"description"`
     Notes       string        `json:"notes"`
-    State       string        `json:"state"` // todo | doing | done
+    State       string        `json:"state"` // todo | doing | blocked | delegated | done
     Size        int           `json:"size"`
     Links       []TaskLink    `json:"links"`
     Urgent      bool          `json:"urgent"`
@@ -138,4 +138,3 @@ All endpoints accept/return JSON and live under `/api`.
 - Do we support ordering of categories/tasks beyond existing layout?
 - Expected frequency of writes (to tune debounce/backoff)?
 - Persistence encryption or locking when multiple processes run?
-

@@ -1,15 +1,30 @@
 {
   "categories": [
     {
-      "id": "6crexqdet69loou2",
-      "name": "Stuff",
+      "id": "g7flai4kwbsmkj4p",
+      "name": "Design",
+      "tasks": []
+    },
+    {
+      "id": "qht36mam3mi2gmac",
+      "name": "Misc",
+      "tasks": []
+    },
+    {
+      "id": "t61393ahsmaj50vd",
+      "name": "Planning",
+      "tasks": []
+    },
+    {
+      "id": "yrtpdik39fq1ng9c",
+      "name": "Backlog",
       "tasks": [
         {
-          "id": "2caqke4hxoho3vy1",
-          "name": "Release prep",
-          "description": "Changelog, versioning, and rollout plan.",
+          "id": "cdx5x1op329l53oc",
+          "name": "A bigger task",
+          "description": "",
           "notes": "",
-          "state": "done",
+          "state": "todo",
           "size": 5
         }
       ]
@@ -24,24 +39,19 @@
           "description": "README + usage examples.",
           "notes": "",
           "state": "todo",
-          "size": 2
+          "size": 2,
+          "checklist": [
+            {
+              "text": "first this",
+              "done": true
+            },
+            {
+              "text": "this too",
+              "done": true
+            }
+          ]
         }
       ]
-    },
-    {
-      "id": "t61393ahsmaj50vd",
-      "name": "Planning",
-      "tasks": []
-    },
-    {
-      "id": "g7flai4kwbsmkj4p",
-      "name": "Design",
-      "tasks": []
-    },
-    {
-      "id": "qht36mam3mi2gmac",
-      "name": "Misc",
-      "tasks": []
     }
   ],
   "backburner": [],
@@ -141,16 +151,38 @@
       "tasks": []
     },
     {
-      "id": "yrtpdik39fq1ng9c",
-      "name": "Backlog",
+      "id": "6crexqdet69loou2",
+      "name": "Stuff",
       "tasks": [
         {
-          "id": "cdx5x1op329l53oc",
-          "name": "A bigger task",
+          "id": "2caqke4hxoho3vy1",
+          "name": "Release prep",
+          "description": "Changelog, versioning, and rollout plan.\n\nA really big story",
+          "notes": "",
+          "state": "done",
+          "size": 3
+        },
+        {
+          "id": "bkkgco9u1ec8uybh",
+          "name": "Another big one",
           "description": "",
           "notes": "",
           "state": "delegated",
-          "size": 5
+          "size": 2,
+          "checklist": [
+            {
+              "text": "this one",
+              "done": false
+            },
+            {
+              "text": "than that one",
+              "done": false
+            },
+            {
+              "text": "last this",
+              "done": false
+            }
+          ]
         }
       ]
     }

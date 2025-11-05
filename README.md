@@ -5,7 +5,7 @@ TwentyFive is a personal task organizer designed to run locally for a single use
 ## Features
 
 - Five-column board with 25 total capacity points (5 per column)
-- Tasks carry metadata: size (1–5), state (`todo`, `doing`, `delegated`, `done`), notes, private links, focus + urgent flags
+- Tasks carry metadata: size (1–5), state (`todo`, `doing`, `blocked`, `delegated`, `done`), notes, private links, focus + urgent flags
 - Backburner for overflow tasks and Archive for completed/removed cards
 - Inline category renaming, quick add/edit modals, and urgency/focus controls
 - Go backend persists board state to JSON and serves the single-page UI

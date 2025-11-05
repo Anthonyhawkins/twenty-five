@@ -29,6 +29,9 @@
           <span class="size-3 rounded-full bg-blue-300"></span> Doing
         </div>
         <div class="flex items-center gap-2 text-sm">
+          <span class="size-3 rounded-full bg-red-300"></span> Blocked
+        </div>
+        <div class="flex items-center gap-2 text-sm">
           <span class="size-3 rounded-full bg-emerald-300"></span> Done
         </div>
         <div class="flex items-center gap-2 text-sm">
@@ -372,7 +375,7 @@
   <script>
     function todoGrid() {
       return {
-        states: ['todo', 'doing', 'delegated', 'done'],
+        states: ['todo', 'doing', 'blocked', 'delegated', 'done'],
         filter: 'all',
         categories: [],
         categoryBackburner: [],
@@ -493,6 +496,7 @@
           const byState = {
             todo: 'bg-slate-50 ring-slate-200',
             doing: 'bg-blue-50 ring-blue-200',
+            blocked: 'bg-red-50 ring-red-200',
             delegated: 'bg-amber-50 ring-amber-200',
             done: 'bg-emerald-50 ring-emerald-200',
           }[t?.state] || 'bg-white ring-slate-200';
@@ -507,6 +511,7 @@
           return {
             todo: 'bg-white text-slate-600 ring-slate-200',
             doing: 'bg-white text-blue-700 ring-blue-200',
+            blocked: 'bg-white text-red-700 ring-red-200',
             delegated: 'bg-white text-amber-700 ring-amber-200',
             done: 'bg-white text-emerald-700 ring-emerald-200',
           }[s] || 'bg-white ring-slate-200';

@@ -3,7 +3,7 @@
 ## What Is TwentyFive?
 - TwentyFive is a client-side productivity board that blends kanban, time blocking, and point-based prioritization.
 - The UI presents a five-column grid (each colmn a category of tasks) with a hard cap of five “points” per column.
-- Tasks carry metadata—size (1–5), description, notes, links, state (todo/doing/done), urgent and focus flags—to help users balance workload visually.
+- Tasks carry metadata—size (1–5), description, notes, links, state (todo/doing/blocked/delegated/done), urgent and focus flags—to help users balance workload visually.
 - Overflow tasks land in a Backburner list, while archived cards remain accessible in an Archive section.
 
 ## Current Front-End
@@ -30,4 +30,3 @@
 - Keep the UX compact, responsive, and minimal; avoid clutter that disrupts the grid metaphor.
 - Opt for clarity and maintainability in both front- and back-end code; prefer small, composable components.
 - Treat persistence and networking as transparent enhancements—front-end behavior should remain smooth even while transitioning to server-backed state.
-

@@ -128,10 +128,11 @@ func (b BoardState) Clone() BoardState {
 }
 
 var allowedStates = map[string]struct{}{
-	"todo":      {},
-	"doing":     {},
-	"done":      {},
-	"delegated": {},
+    "todo":      {},
+    "doing":     {},
+    "blocked":   {},
+    "done":      {},
+    "delegated": {},
 }
 
 func ValidateTaskState(state string) error {
