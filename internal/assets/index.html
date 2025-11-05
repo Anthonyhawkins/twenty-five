@@ -86,6 +86,22 @@
                     </template>
                   </div>
                 </template>
+                <template x-if="t.checklist && t.checklist.length">
+                  <div class="mt-2">
+                    <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                      <span>Checklist</span>
+                      <span x-text="(t.checklist.filter(i=>i&&i.done).length) + '/' + (t.checklist.length)"></span>
+                    </div>
+                    <ul class="space-y-1 max-h-20 overflow-auto pr-1">
+                      <template x-for="(item, idx) in t.checklist" :key="idx">
+                        <li class="flex items-start gap-2 text-xs">
+                          <input type="checkbox" :checked="!!item.done" @click.stop.prevent="toggleChecklistItem(t, idx)" class="mt-0.5 size-3 rounded border-slate-300 text-slate-700 focus:ring-slate-400">
+                          <span :class="item.done ? 'line-through text-slate-400' : ''" x-text="item.text"></span>
+                        </li>
+                      </template>
+                    </ul>
+                  </div>
+                </template>
                 <div class="mt-auto pt-2 text-[10px] text-slate-500 flex items-center justify-between">
                   <span></span>
                   <div class="mt-2 flex w-full text-[10px] items-center rounded-b-xl overflow-hidden">
@@ -278,6 +294,9 @@
           <label class="sm:col-span-6 text-xs">Links
             <textarea x-model="quickAdd.form.links" rows="3" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="Design doc https://example.com"></textarea>
           </label>
+          <label class="sm:col-span-6 text-xs">Checklist
+            <textarea x-model="quickAdd.form.checklist" rows="4" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="One item per line"></textarea>
+          </label>
           <div class="sm:col-span-2 text-xs">
             Size (1–5)
             <div class="mt-1 flex gap-1">
@@ -325,6 +344,9 @@
           <label class="sm:col-span-6 text-xs">Links
             <textarea x-model="quickEdit.form.links" rows="3" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="Design doc https://example.com"></textarea>
           </label>
+          <label class="sm:col-span-6 text-xs">Checklist
+            <textarea x-model="quickEdit.form.checklist" rows="4" class="w-full mt-1 px-3 py-2 rounded-md ring-1 ring-slate-300 bg-white" placeholder="One item per line"></textarea>
+          </label>
           <div class="sm:col-span-2 text-xs">
             Size (1–5)
             <div class="mt-1 flex gap-1">
@@ -359,8 +381,8 @@
         archives: [],
         loading: false,
         error: null,
-        quickAdd: { open: false, columnIndex: null, form: { name: '', description: '', notes: '', links: '', state: 'todo', size: 1 } },
-        quickEdit: { open: false, location: null, columnIndex: null, id: null, form: { name: '', description: '', notes: '', links: '', state: 'todo', size: 1 } },
+        quickAdd: { open: false, columnIndex: null, form: { name: '', description: '', notes: '', links: '', checklist: '', state: 'todo', size: 1 } },
+        quickEdit: { open: false, location: null, columnIndex: null, id: null, form: { name: '', description: '', notes: '', links: '', checklist: '', state: 'todo', size: 1 } },
         editingCategoryIndex: null,
         editingCategoryName: '',
         addingCategory: false,
@@ -420,6 +442,21 @@
           const message = err.message || fallbackMessage || 'Something went wrong';
           console.error(err);
           alert(message);
+        },
+        getTaskById(id) {
+          if (!id) return null;
+          for (const cat of this.categories || []) {
+            for (const t of (cat.tasks || [])) {
+              if (t && t.id === id) return t;
+            }
+          }
+          for (const t of this.backburner || []) {
+            if (t && t.id === id) return t;
+          }
+          for (const t of this.archives || []) {
+            if (t && t.id === id) return t;
+          }
+          return null;
         },
         async moveCategory(id, location, bodyExtras = {}) {
           if (!id || !location) return;
@@ -509,6 +546,45 @@
             .filter(Boolean)
             .join('\n');
         },
+        normalizeChecklistKey(text) {
+          return (text || '').trim().toLowerCase();
+        },
+        parseChecklistInput(text) {
+          if (!text) return [];
+          return String(text)
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean)
+            .map(s => ({ text: s, done: false }));
+        },
+        checklistToTextarea(items) {
+          if (!Array.isArray(items) || items.length === 0) return '';
+          return items.map(it => (it?.text || '').trim()).filter(Boolean).join('\n');
+        },
+        mergeChecklistWithExisting(existing, inputText) {
+          const existingList = Array.isArray(existing) ? existing : [];
+          const lines = String(inputText || '')
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean);
+          // Build buckets of done flags per normalized text (preserve order for duplicates)
+          const buckets = new Map();
+          for (const it of existingList) {
+            const key = this.normalizeChecklistKey(it?.text || '');
+            if (!buckets.has(key)) buckets.set(key, []);
+            buckets.get(key).push(!!it?.done);
+          }
+          const result = [];
+          for (const line of lines) {
+            const key = this.normalizeChecklistKey(line);
+            let done = false;
+            if (buckets.has(key) && buckets.get(key).length) {
+              done = !!buckets.get(key).shift();
+            }
+            result.push({ text: line, done });
+          }
+          return result;
+        },
         fillerCells(tasks) {
           const used = this.visibleTasks(tasks).reduce((sum, t) => sum + Math.min(Math.max((t?.size) || 1, 1), 5), 0);
           const remaining = Math.max(0, 5 - used);
@@ -517,7 +593,7 @@
         openQuickAdd(ci) {
           this.quickAdd.open = true;
           this.quickAdd.columnIndex = ci;
-          this.quickAdd.form = { name: '', description: '', notes: '', links: '', state: 'todo', size: 1 };
+          this.quickAdd.form = { name: '', description: '', notes: '', links: '', checklist: '', state: 'todo', size: 1 };
         },
         async addTask(ci) {
           const col = this.categories[ci];
@@ -531,6 +607,7 @@
             state: f.state || 'todo',
             size: Math.min(Math.max(parseInt(f.size || 1, 10), 1), 5),
             links: this.parseLinksInput(f.links),
+            checklist: this.parseChecklistInput(f.checklist),
           };
           try {
             const res = await this.api('/api/tasks', {
@@ -599,6 +676,23 @@
             const res = await this.api(`/api/tasks/${task.id}`, {
               method: 'PATCH',
               body: JSON.stringify({ urgent: !task.urgent, state: task.state }),
+            });
+            this.updateAfterBoardResponse(res);
+          } catch (err) {
+            this.handleActionError(err);
+          }
+        },
+        async toggleChecklistItem(task, index) {
+          if (!task?.id) return;
+          const list = Array.isArray(task.checklist) ? task.checklist.slice() : [];
+          if (index < 0 || index >= list.length) return;
+          const item = Object.assign({}, list[index]);
+          item.done = !item.done;
+          list[index] = item;
+          try {
+            const res = await this.api(`/api/tasks/${task.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ checklist: list }),
             });
             this.updateAfterBoardResponse(res);
           } catch (err) {
@@ -728,6 +822,7 @@
             description: task.description,
             notes: task.notes || '',
             links: this.linksToTextarea(task.links),
+            checklist: this.checklistToTextarea(task.checklist),
             state: task.state,
             size: task.size,
           };
@@ -742,6 +837,7 @@
             description: task.description,
             notes: task.notes || '',
             links: this.linksToTextarea(task.links),
+            checklist: this.checklistToTextarea(task.checklist),
             state: task.state,
             size: task.size,
           };
@@ -756,6 +852,7 @@
             description: task.description,
             notes: task.notes || '',
             links: this.linksToTextarea(task.links),
+            checklist: this.checklistToTextarea(task.checklist),
             state: task.state,
             size: task.size,
           };
@@ -765,6 +862,7 @@
           if (!taskId) return;
           const f = this.quickEdit.form;
           const size = Math.min(Math.max(parseInt(f.size || 1, 10), 1), 5);
+          const existing = this.getTaskById(taskId)?.checklist || [];
           const body = {
             name: (f.name || 'Untitled').trim() || 'Untitled',
             description: f.description || '',
@@ -772,6 +870,7 @@
             state: f.state || 'todo',
             size,
             links: this.parseLinksInput(f.links),
+            checklist: this.mergeChecklistWithExisting(existing, f.checklist),
           };
           try {
             const res = await this.api(`/api/tasks/${taskId}`, {
@@ -794,6 +893,7 @@
           if (!taskId) return;
           const f = this.quickEdit.form;
           const size = Math.min(Math.max(parseInt(f.size || 1, 10), 1), 5);
+          const existing = this.getTaskById(taskId)?.checklist || [];
           const updateBody = {
             name: (f.name || 'Untitled').trim() || 'Untitled',
             description: f.description || '',
@@ -801,6 +901,7 @@
             state: f.state || 'todo',
             size,
             links: this.parseLinksInput(f.links),
+            checklist: this.mergeChecklistWithExisting(existing, f.checklist),
           };
           const originCategory = this.quickEdit.location === 'column' ? this.categories[this.quickEdit.columnIndex] : null;
           const archiveTask = this.quickEdit.location === 'archive' ? this.archives.find(t => t.id === taskId) : null;

@@ -31,22 +31,28 @@ type Category struct {
 }
 
 type Task struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Notes       string     `json:"notes"`
-	State       string     `json:"state"`
-	Size        int        `json:"size"`
-	Links       []TaskLink `json:"links,omitempty"`
-	Urgent      bool       `json:"urgent,omitempty"`
-	Focused     bool       `json:"focused,omitempty"`
-	SourceID    string     `json:"sourceId,omitempty"`
-	Source      string     `json:"source,omitempty"`
+    ID          string     `json:"id"`
+    Name        string     `json:"name"`
+    Description string     `json:"description"`
+    Notes       string     `json:"notes"`
+    State       string     `json:"state"`
+    Size        int        `json:"size"`
+    Links       []TaskLink `json:"links,omitempty"`
+    Checklist   []ChecklistItem `json:"checklist,omitempty"`
+    Urgent      bool       `json:"urgent,omitempty"`
+    Focused     bool       `json:"focused,omitempty"`
+    SourceID    string     `json:"sourceId,omitempty"`
+    Source      string     `json:"source,omitempty"`
 }
 
 type TaskLink struct {
-	Text string `json:"text"`
-	URL  string `json:"url"`
+    Text string `json:"text"`
+    URL  string `json:"url"`
+}
+
+type ChecklistItem struct {
+    Text string `json:"text"`
+    Done bool   `json:"done"`
 }
 
 // Validation Errors
@@ -63,12 +69,16 @@ var (
 )
 
 func (t Task) Clone() Task {
-	out := t
-	if len(t.Links) > 0 {
-		out.Links = make([]TaskLink, len(t.Links))
-		copy(out.Links, t.Links)
-	}
-	return out
+    out := t
+    if len(t.Links) > 0 {
+        out.Links = make([]TaskLink, len(t.Links))
+        copy(out.Links, t.Links)
+    }
+    if len(t.Checklist) > 0 {
+        out.Checklist = make([]ChecklistItem, len(t.Checklist))
+        copy(out.Checklist, t.Checklist)
+    }
+    return out
 }
 
 func (c Category) Clone() Category {

@@ -35,13 +35,14 @@ func (r CreateTaskRequest) Validate() error {
 }
 
 type TaskPatch struct {
-	Name        *string     `json:"name,omitempty"`
-	Description *string     `json:"description,omitempty"`
-	Notes       *string     `json:"notes,omitempty"`
-	State       *string     `json:"state,omitempty"`
-	Size        *int        `json:"size,omitempty"`
-	Links       *[]TaskLink `json:"links,omitempty"`
-	Urgent      *bool       `json:"urgent,omitempty"`
+    Name        *string     `json:"name,omitempty"`
+    Description *string     `json:"description,omitempty"`
+    Notes       *string     `json:"notes,omitempty"`
+    State       *string     `json:"state,omitempty"`
+    Size        *int        `json:"size,omitempty"`
+    Links       *[]TaskLink `json:"links,omitempty"`
+    Checklist   *[]ChecklistItem `json:"checklist,omitempty"`
+    Urgent      *bool       `json:"urgent,omitempty"`
 }
 
 func (p TaskPatch) Apply(task *Task) error {
@@ -67,14 +68,18 @@ func (p TaskPatch) Apply(task *Task) error {
 		}
 		task.Size = size
 	}
-	if p.Links != nil {
-		task.Links = make([]TaskLink, len(*p.Links))
-		copy(task.Links, *p.Links)
-	}
-	if p.Urgent != nil {
-		task.Urgent = *p.Urgent
-	}
-	return nil
+    if p.Links != nil {
+        task.Links = make([]TaskLink, len(*p.Links))
+        copy(task.Links, *p.Links)
+    }
+    if p.Checklist != nil {
+        task.Checklist = make([]ChecklistItem, len(*p.Checklist))
+        copy(task.Checklist, *p.Checklist)
+    }
+    if p.Urgent != nil {
+        task.Urgent = *p.Urgent
+    }
+    return nil
 }
 
 type MoveTaskRequest struct {
